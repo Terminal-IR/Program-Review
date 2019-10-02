@@ -1,30 +1,35 @@
-# Welcome to GitHub
+# Program Review with R Markdown
 
-Welcome to GitHub—where millions of developers work together on software. Ready to get started? Let’s learn how this all works by building and publishing your first GitHub Pages website!
+Ittarative program review doccument creation through R Markdown with a decent looking end result.
 
-## Repositories
+## Package Basics
 
-Right now, we’re in your first GitHub **repository**. A repository is like a folder or storage space for your project. Your project's repository contains all its files such as code, documentation, images, and more. It also tracks every change that you—or your collaborators—make to each file, so you can always go back to previous versions of your project if you make any mistakes.
+Tying program data into a program review document can be difficult.  There are two well established options: 
+1) The program review author can take outside data (usually from an Excel workbook or data dashboard) and paste it into a document 
+2) The program review document is fully implemented online and data is programmatically inserted into the web form.  
 
-This repository contains three important files: The HTML code for your first website on GitHub, the CSS stylesheet that decorates your website with colors and fonts, and the **README** file. It also contains an image folder, with one image file.
+Option 1 lightens the load on the IT/IR department but requires authors to be savvy cut and pasters.  Option 2 requires significant programing knowledge or a costly purchased solution.
 
-## Describe your project
+This package models a third way.  R Markdown is used for iterative reporting to build program review Word document files, unique to each program with embeded charts and tables.  This package uses R, but most of the heavy lifting is done in SQL.  The package mirrors my status as an R newbie and a seasoned SQL developer.  The general workflow is:
 
-You are currently viewing your project's **README** file. **_README_** files are like cover pages or elevator pitches for your project. They are written in plain text or [Markdown language](https://guides.github.com/features/mastering-markdown/), and usually include a paragraph describing the project, directions on how to use it, who authored it, and more.
+You will need to alter this package to fit your institution’s needs. If you come up with a better way to do something, please share!  I’m new to R and would appreciate the guidance. 
 
-[Learn more about READMEs](https://help.github.com/en/articles/about-readmes)
+## Pre-requisites
+<ul>
+  <li>R and an R IDE such as R-Studio</li>
+  <li>A database to get program data from</li>
+  <li>A little R knowledge</li>
+  <li>A fair amount of SQL knowledge</li>
+ </ul>
 
-## Your first website
+Requried R libraries are listed at the top of the code
 
-**GitHub Pages** is a free and easy way to create a website using the code that lives in your GitHub repositories. You can use GitHub Pages to build a portfolio of your work, create a personal website, or share a fun project that you coded with the world. GitHub Pages is automatically enabled in this repository, but when you create new repositories in the future, the steps to launch a GitHub Pages website will be slightly different.
+## Debts of gratitude
+As a UNR grad it pains me to say it, but I owe a huge debt to at UNLV's Office of Decision Support.  Without her presentation at the 2019 AIR Forum showing how RMarkdown could be used for sharing IPEDS data with the univerisities leadership team, I never would have launched this project.
+Everyone involved in making the R libraries I used. 
+My wife and kids for letting burn the midnight oil to develop this package.
 
-[Learn more about GitHub Pages](https://pages.github.com/)
 
-## Rename this repository to publish your site
-
-We've already set-up a GitHub Pages website for you, based on your personal username. This repository is called `hello-world`, but you'll rename it to: `username.github.io`, to match your website's URL address. If the first part of the repository doesn’t exactly match your username, it won’t work, so make sure to get it right.
-
-Let's get started! To update this repository’s name, click the `Settings` tab on this page. This will take you to your repository’s settings page. 
 
 ![repo-settings-image](https://user-images.githubusercontent.com/18093541/63130482-99e6ad80-bf88-11e9-99a1-d3cf1660b47e.png)
 
