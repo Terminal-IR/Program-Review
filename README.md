@@ -31,7 +31,7 @@ You will need to alter this package to fit your institution’s needs. If you co
 
 Requried R libraries are listed at the top of the code
 
-## Debts of gratitude
+## Debts of Gratitude
 As a UNR grad it pains me to say it, but I owe a huge debt to Shiloh Bradley at UNLV's Office of Decision Support.  Without her presentation at the 2019 AIR Forum - <i> Automating Custome Peer Reports Using IPEDS Data with SQL, R and LaTeX </i>, I never would have launched this project.
-Everyone involved in making the R libraries I used. 
-My wife and kids for letting burn the midnight oil to develop this package.
+Thanks to everyone involved in making the R libraries I used. 
+Love to my wife and kids and thanks for letting burn the midnight oil to develop this package.
