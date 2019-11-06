@@ -1,0 +1,1463 @@
+---
+title: "__________ Program Review"
+author: "Author"
+date: "Fall 2019"
+output: 
+  word_document:
+    reference_docx: RPRODWordStylePR-01.docx
+    toc: TRUE
+    toc_depth: 2
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 4.5, fig.height = 4.33, dpi = 600)
+
+#Libraries
+library(knitr) #Makes Word Documents
+library(rmarkdown) #Makes Word Documents
+library(ggplot2) #Plotting
+library(dplyr) #Data Manipulation
+library(tidyr) #Data Manipulation
+library(reshape2) #Data Manipulation
+library(magrittr) #Piping
+library(purrr) #Piping
+library(data.table) #Data Manipulation
+
+#Format libraries
+#library(kableExtra) #Tables pretty
+library(RColorBrewer) #Colors for charts
+library(scales) #Colors for charts
+library(ggrepel) #Make sure lables don't run over each other
+library(treemapify) #Make a tree map
+library(flextable) #Better tables
+library(officer) #Needed for flextable
+
+#Color Palate
+coul = brewer.pal(11, "Spectral") 
+
+#Source files
+source("ProgramReviewAutomation_Qdemographics.R")
+
+```
+
+```{r echo=FALSE}
+#Get Program and Set Start Term and End Term
+#progID <- "ARTX" #A test program 
+progID <- programs$DEPT_CHAIR_ID[i] #from csv and mailmerge
+progDesc <- programs$DEC_DESC[i] #from csv and mailmerge
+progMinTerm <- "20143" #User Provided here Typically Fall
+progMaxTerm <- "20192" #User Provided here Typically Spring
+progRecentYear <- as.numeric(progMinTerm) +  40 #Add term i.e. 40 is user provided.  Will advance to most recent complete year if progMinTerm to progMaxTerm covers a 4 year period.
+```
+
+
+# BACKGROUND
+## Program Mission Statement
+From Unit Plan...
+
+## Program Description
+From Unit Plan...
+
+## Previous Rrogram Review Recommendations
+Response...
+
+## Previous Unit Plans
+Provide an executive summary of unit plans since last Program Review.
+Briefly list major accomplishments and ongoing challenges relative to: 
+a. assessment and improvement of student learning
+b. student success, persistence and completion
+c. other department goals
+
+###### page break
+
+# CURRENT STATUS
+## Butte College Mission Support
+Explain how courses in this program support the college’s mission. Emphasize the program’s role in the institutional commitment to student learning.
+
+## Situation Analysis
+Explain developments since the last Program Review that may affect the program’s ability to support student learning through the services that it offers.
+
+## Data Analysis
+This section contains program overview data.  Further programatic data can be found in Appendix XX and may be coppied to this section should to provide furter information on the program.  Discuss the significance of results and indicate trends (if possible).  Contact the Department of Institutional Effectiveness if you would like additional data or insight.
+
+### Headcount and Enrollment
+This section shows student headcount (unduplicated) and enrollment (duplicated) by program, department, and term.  Information at the course level is available in the Data Appendix.
+
+#### Headcount
+Is program headcount moving in the same direction as the college?  Is there growth?
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College distinct Headcount plot
+cb <- distinctHCCol(progMinTerm, progMaxTerm)
+
+#Program Total distinct Headcount
+pt <- progDistinctHCTot(progID, progMinTerm, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(cb, pt)
+
+#Plot the time series headcount chart
+ggplot(combProgCbPt, aes(y = HEADCOUNT, x = ACADEMIC_YEAR, color = PROGRAM)) + 
+  geom_line() +
+  geom_text(aes(label = HEADCOUNT), color = "black", size = 3) +
+  ggtitle(paste(progDesc, "Unique Headcount by Academic Year", sep = "\n")) +
+  labs(color ="", x = "Academic Year", y = "Headcount") +
+  scale_color_brewer(palette = "Spectral") +
+  theme(legend.position = "bottom") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 7), legend.key.size = unit(.5, "cm"), 
+  legend.title = element_text(size = 7)) +
+  theme(axis.title.y = element_text(size = 7), axis.title.x = element_text(size = 7)) +
+  guides(color = guide_legend(nrow = 1,byrow = TRUE))
+```  
+
+#### Enrollment
+Are department enrollments changing?  Why?
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program Enrollment plot
+ab <- progEnrollment(progID, progMinTerm, progMaxTerm)
+
+#need to get program total
+#pt <- aggregate(ab$ENROLLMENT, by = list(ACADEMIC_YEAR = ab$ACADEMIC_YEAR, PROGRAM = ab$PROGRAM), FUN = sum)
+pt <- aggregate(ab$ENROLLMENT, by = list(ACADEMIC_YEAR = ab$ACADEMIC_YEAR), FUN = sum)
+
+#add another "PROGRAM" and "Department" column so we can merge data
+total <- c('Program Total')
+pt <- mutate(pt,total)
+ptProgram <- c('')
+pt <- mutate(pt,ptProgram)
+
+#rename the columns
+colnames(pt)[colnames(pt)=="x"] <- "ENROLLMENT"
+colnames(pt)[colnames(pt)=="total"] <- "DEPARTMENT"
+colnames(pt)[colnames(pt)=="ptProgram"] <- "PROGRAM"
+
+#Merge program and department data for chart
+combProgCbPt <- rbind(ab, pt)
+
+#Can't label too many lines - so no labels if more than 6
+numbLines <- combProgCbPt %>% count(ACADEMIC_YEAR, sort = TRUE, name = "N_PROGRAMS_BY_YEAR") %>% .$N_PROGRAMS_BY_YEAR  %>% max()
+if (numbLines >  6)
+  {
+#Plot the time series headcount chart
+ggplot(combProgCbPt, aes(y = ENROLLMENT, x = ACADEMIC_YEAR, color = DEPARTMENT, label = ENROLLMENT)) + 
+  geom_line() +
+  #geom_text(aes(label = ENROLLMENT), color = "black", size = 3) +
+  ggtitle(paste(progDesc, "Enrollment by Academic Year", sep = "\n")) +
+#geom_text_repel() +
+  labs(color ="Department", x = "Academic Year", y = "Enrollment") +
+  geom_point(color = "black") +
+  scale_color_brewer(palette = "Spectral") +
+  theme(legend.position = "bottom") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+  legend.title = element_blank()) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  guides(color = guide_legend(nrow = 3,byrow = TRUE))
+  } else
+  
+  #Plot the time series headcount chart
+ggplot(combProgCbPt, aes(y = ENROLLMENT, x = ACADEMIC_YEAR, color = DEPARTMENT, label = ENROLLMENT)) + 
+  geom_line() +
+  ggtitle(paste(progDesc, "Enrollment by Academic Year", sep = "\n")) +
+  geom_text_repel(color = "black", size = 3) +
+  labs(color ="Department", x = "Academic Year", y = "Enrollment") +
+  #geom_point(color = "black") +
+  scale_color_brewer(palette = "Spectral") +
+  theme(legend.position = "bottom") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+  legend.title = element_blank()) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  guides(color = guide_legend(nrow = 3,byrow = TRUE)) 
+  
+``` 
+
+#### Enrollment by Department and Term
+Are department ernollments changing on a term basis?  Is one term significantly larger than another?
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program Enrollment BY TERM plot
+ab <- progEnrollmentTerm(progID, progMinTerm, progMaxTerm)
+
+#need to get program total
+pt <- aggregate(ab$ENROLLMENT, by = list(ACADEMIC_YEAR = ab$ACADEMIC_YEAR, PERIOD = ab$PERIOD), FUN = sum)
+
+#add another "PROGRAM" and "Department" column so we can merge data
+total <- c('Program Total')
+pt <- mutate(pt,total)
+ptProgram <- c('')
+pt <- mutate(pt,ptProgram)
+
+#rename the columns
+colnames(pt)[colnames(pt)=="x"] <- "ENROLLMENT"
+colnames(pt)[colnames(pt)=="total"] <- "DEPARTMENT"
+colnames(pt)[colnames(pt)=="ptProgram"] <- "PROGRAM"
+
+#Merge program and department data for chart
+combProgCbPt <- rbind(ab, pt)
+
+#Plot the time series headcount chart
+ggplot(combProgCbPt, aes(y = ENROLLMENT, x = ACADEMIC_YEAR, fill = DEPARTMENT)) + 
+  geom_bar( stat="identity", position = "dodge") +
+  facet_wrap(~PERIOD) +
+  ggtitle(paste(progDesc, "Enrollment by Term", sep = "\n")) +
+  aes(label = ENROLLMENT) +  
+  #geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+   labs(fill="Department", x = "Academic Year", y = "Enrollment") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE))
+``` 
+
+### Student Majors
+Butte College is revamping processes to reflect the guided pathways initiative and program thiniking.  To that end information is included in program review to evaluate the number of students in a particular major and information on how students migrate between majors. 
+
+#### Number of Current Students with Majors in the Program
+This chart shows the number of students who were actively enrolled in the prior fall who had a major in the program, regardless of the classes the student actually took in the fall.  A student who has multiple majors will be catagorized by their most recent selection and a student who is seeking certificates and a degree will be catagorized by the degree.  Do program course offerings reflect the number of students majoring in the program?
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis', fig.width = 5.75, fig.height = 5}
+#Program majors
+ab <- progMajorHC(progID, progMinTerm, progMaxTerm)
+
+ggplot(ab, aes(area = ab$HEADCOUNT, 
+               label = ab$HEADCOUNT,
+               subgroup = ab$ACP_DEG_CERT_TYPE,
+               subgroup2 = ab$ACP_TITLE,
+               fill = ab$ACP_DEG_CERT_TYPE)) +
+  ggtitle(paste(progDesc, paste(ab$ENR_TERM, "Students with a Major in the Program"), sep = "\n")) +
+  geom_treemap() +
+  geom_treemap_subgroup_border() +
+  scale_fill_brewer(palette = "Dark2") +
+  geom_treemap_subgroup_text(place = "centre", grow = T, reflow = T, alpha = 0.5, colour =
+                             "black", fontface = "italic") +
+  geom_treemap_subgroup2_text(colour = "grey", reflow = T, place = "topleft") +
+  geom_treemap_text(colour = "black", place = "bottomright") +
+  labs(fill = "Award Type") +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.5, "cm"), 
+        legend.title = element_text(size = 8))
+
+```
+
+#### Major Flow In
+The following tables show relative flow of students into and out of majors within the program.  These tables show the student's first major and their eventual earned award.  To be included, the student must have earned an award within the last year.
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Students who joined the program
+completers <- progMajorIn(progID, progRecentYear, progMaxTerm)
+
+#Remove unnecessary columns
+completers$SDC_TERM = NULL
+completers$FIRST_DEPARTMENT = NULL
+completers$END_DEPARTMENT = NULL
+completers$END_AWARD = NULL
+completers$ENR_AWARD_TYPE = NULL
+
+#aggregate
+completers <- aggregate(completers$HEADCOUNT, by = list(FIRST_PROGRAM = completers$FIRST_PROGRAM, END_PROGRAM = completers$END_PROGRAM), FUN = sum)
+
+#rename aggregate column
+colnames(completers)[colnames(completers)=="x"] <- "COMPLETERS"
+
+#Sort table
+completers <- completers %>%  arrange(desc(completers$COMPLETERS)) 
+
+knitr::kable(completers, padding = 0)
+
+```
+
+#### Major Flow Out
+This table shows the number of  students who flowed out of the program.  Aggregated students shown here had an original program of study within the program and earned an award - degree or certificate - in another program. 
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#get Students who left the program
+leavers <- progMajorOut(progID, progRecentYear, progMaxTerm)
+
+#Remove unnecessary columns
+leavers$SDC_TERM = NULL
+leavers$FIRST_DEPARTMENT = NULL
+leavers$END_DEPARTMENT = NULL
+leavers$END_AWARD = NULL
+leavers$ENR_AWARD_TYPE = NULL
+
+#aggregate
+leavers <- aggregate(leavers$HEADCOUNT, by = list(FIRST_PROGRAM = leavers$FIRST_PROGRAM, END_PROGRAM = leavers$END_PROGRAM), FUN = sum)
+
+#rename aggregate column
+colnames(leavers)[colnames(leavers)=="x"] <- "LEAVERS"
+
+#Sort table
+leavers <- leavers %>%  arrange(desc(leavers$LEAVERS))
+
+knitr::kable(leavers, padding = 0)
+```
+
+###### page break
+### Student Demographic Profile
+Student demographic profile compared to the overall college profile to include gender, age, GPA, ethnicity, DSPS, Foster Youth, Veterans, and Economically Disadvantaged. When examining results, compare proportions of populations in your program with the college as a whole. Are there notworthy differences between the college and your program?  This could indicate an access issue?
+
+#### Student Gender
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#College percent gender plot
+cb <- percentGenderCol(progMinTerm, progMaxTerm)
+
+#Program Total percent gender
+pt <- progPercentGenderTot(progID, progMinTerm, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(cb, pt)
+
+#Get the percentage of headcount for each gender and term
+combProgCbPt <- group_by(combProgCbPt, ACADEMIC_YEAR, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+
+#Plot the 100% stacked gender bar chart
+ggplot(combProgCbPt, aes(fill = STU_GENDER, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~PROGRAM) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Gender", sep = "\n")) +
+  aes(label = paste0(sprintf("%.0f", percentHEADCOUNT*100),"%")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Gender", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.5, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+#### Student Age
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College percent AGE plot
+cb <- percentAgeCol(progMinTerm, progMaxTerm)
+
+#Program Total percent Age
+pt <- progPercentAgeTot(progID, progMinTerm, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(pt, cb)
+
+#need to group ages
+combProgCbPt <- aggregate(combProgCbPt$HEADCOUNT, by = list(ENR_TERM = combProgCbPt$ENR_TERM, PROGRAM = combProgCbPt$PROGRAM, AGE = combProgCbPt$AGE), FUN = sum)
+
+#rename the frequency column
+colnames(combProgCbPt)[colnames(combProgCbPt)=="x"] <- "HEADCOUNT"
+
+#Get the percentage of headcount for each gender and term
+combProgCbPt <- group_by(combProgCbPt, ENR_TERM, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked AGE bar chart
+ggplot(combProgCbPt, aes(fill = AGE, y = percentHEADCOUNT, x = ENR_TERM)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~PROGRAM) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Age", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Age", x = "Fall Term", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.5, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+#### Student Ethnicity
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College percent ETHNICITY plot
+cb <- percentEthnicityCol(progMinTerm, progMaxTerm)
+
+#Program Total percent Ethnicity
+pt <- progPercentEthnicityTot(progID, progMinTerm, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(pt, cb)
+
+#Get the percentage of headcount for each ethnicity and term
+combProgCbPt <- group_by(combProgCbPt, ACADEMIC_YEAR, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked ETHNICITY bar chart
+ggplot(combProgCbPt, aes(fill = ETI_DESC, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~PROGRAM) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Ethnicity", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Ethnicity", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 6), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 6)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE))
+```
+
+#### Student Income Status
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College percent Low Income plot
+cb <- percentLowCol(progMinTerm, progMaxTerm)
+
+pt <- progPercentLowTot(progID, progMinTerm, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(pt, cb)
+
+#Get the percentage of headcount for each ethnicity and term
+combProgCbPt <- group_by(combProgCbPt, ENR_TERM, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked gender bar chart
+ggplot(combProgCbPt, aes(fill = LOW_INCOME, y = percentHEADCOUNT, x = ENR_TERM)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~PROGRAM) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Income Status", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Pell or BOG/CAPP", x = "Fall Term", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 6), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 6)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE))
+```
+
+#### Special Populations
+The percentage of program students in special populations groups averaged over the five year time-frame.
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program percent DSPS table
+dsps <- progPercentDSPSTot(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each DSPS status and term
+dsps <- group_by(dsps, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as DSPS" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+dsps$HEADCOUNT = NULL
+dsps$percentHEADCOUNT = NULL
+dsps <- filter(dsps, STU_DISABILITY_FLAG != "N")
+dsps$STU_DISABILITY_FLAG = NULL
+
+#rename columns
+colnames(dsps)[colnames(dsps)=="PROGRAM"] <- "Program"
+
+#Program percent Foster Youth table
+foster <- progPercentFosterTot(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for foster youth status and term
+foster <- group_by(foster, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Foster Youth" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+foster$HEADCOUNT = NULL
+foster$percentHEADCOUNT = NULL
+foster <- filter(foster, STU_FOSTER_YOUTH_FLAG != "N")
+foster$STU_FOSTER_YOUTH_FLAG = NULL
+
+#rename columns
+colnames(foster)[colnames(foster)=="PROGRAM"] <- "Program"
+
+#Program percent VETERANS table
+vet <- progPercentVetTot(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each veteran status and term
+vet <- group_by(vet, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Veterans" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+vet$HEADCOUNT = NULL
+vet$percentHEADCOUNT = NULL
+vet <- filter(vet, VETERAN_FLAG != "N")
+vet$VETERAN_FLAG = NULL
+
+#rename columns
+colnames(vet)[colnames(vet)=="PROGRAM"] <- "Program"
+
+#Merge data for table
+progSpecPops <- list(dsps, foster, vet) %>% reduce(merge)
+
+#College percent DSPS table
+cbDSPS <- percentDSPSCol(progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount
+cbDSPS <- cbDSPS %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as DSPS" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+cbDSPS$HEADCOUNT = NULL
+cbDSPS$percentHEADCOUNT = NULL
+cbDSPS <- filter(cbDSPS, STU_DISABILITY_FLAG != "N")
+cbDSPS$STU_DISABILITY_FLAG = NULL
+
+#College percent Foster Youth table
+cbFost <- percentFosterCol(progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount
+cbFost <- cbFost %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Foster Youth" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+cbFost$HEADCOUNT = NULL
+cbFost$percentHEADCOUNT = NULL
+cbFost <- filter(cbFost, STU_FOSTER_YOUTH_FLAG != "N")
+cbFost$STU_FOSTER_YOUTH_FLAG = NULL
+
+#College percent Veteran table
+cbVet <- percentVetCol(progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount
+cbVet <- cbVet %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Veterans" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+cbVet$HEADCOUNT = NULL
+cbVet$percentHEADCOUNT = NULL
+cbVet <- filter(cbVet, VETERAN_FLAG != "N")
+cbVet$VETERAN_FLAG = NULL
+
+#Merge data for table
+cbSpecPops <- list("Butte College", cbDSPS, cbFost, cbVet) %>% reduce(merge)
+colnames(cbSpecPops)[colnames(cbSpecPops)=="x"] <- "Program"
+
+#Union Program and College data
+combProgCb <- rbind(progSpecPops, cbSpecPops)
+
+#Print a table with the data
+knitr::kable(combProgCb)
+```
+
+###### page break
+### Program Capacity
+Number of sections offered, enrollments, and fill rates by mode for the previous academic year. This data is available at the course level and over time in the data appendix.
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#Find Program locations and modes for comparisons. Makes a location string for IN clause of querry so only locations of the program are shown at the college level also.
+progLocation <- progLocations(progID, progRecentYear, progMaxTerm) 
+allProgramLocations <- unlist(progLocation[, 1], recursive = TRUE, use.names = TRUE) 
+allProgramModes <- unlist(progLocation[, 2], recursive = TRUE, use.names = TRUE)
+allProgramLocations <- paste("IN ('",
+    paste(allProgramLocations,collapse = "','"),"')",sep = "")
+allProgramModes <- paste("IN ('",
+    paste(allProgramModes,collapse = "','"),"')",sep = "")
+
+#Total Program Capacity Table Data
+pt <- progCapacityTOT(progID, progRecentYear, progMaxTerm)
+#sort
+pt <- pt[order(pt$Year, pt$Loc, pt$Mode),]
+
+#Total College Capacity Table Data
+cb <- collegeCapacity(allProgramLocations, allProgramModes, progRecentYear, progMaxTerm)
+#sort
+cb <- cb[order(cb$Year, cb$Loc, cb$Mode),]
+
+#Merge data for department and program names 
+pt <- list(progDesc, pt) %>% reduce(merge)
+colnames(pt)[colnames(pt)=="x"] <- "Dept"
+colnames(cb)[colnames(cb)=="x"] <- "Dept"
+
+#Union Program and College data
+combProgCb <- bind_rows(cb, pt)
+
+#Change data frame into data table for dcast
+combProgCb <- data.table(combProgCb)
+
+#Use dcast to widen data
+combProgCbSecEnrl <- dcast(combProgCb, Dept  + Loc + Mode ~ Year, value.var = c("Sec", "Enrl", "FR"))
+
+#Print a table with the data
+knitr::kable(combProgCbSecEnrl, padding = 0)
+```
+
+#### Program Efficiency
+Department/program FTES and efficiency (FTES/FTEF) by mode. This data is available at the course level in the data appendix.
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#Find Program locations and modes for comparisons. Makes a location string for IN clause of querry so only locations of the program are shown at the college level also.
+progLocation <- progLocations(progID, progRecentYear, progMaxTerm) 
+allProgramLocations <- unlist(progLocation[, 1], recursive = TRUE, use.names = TRUE) 
+allProgramModes <- unlist(progLocation[, 2], recursive = TRUE, use.names = TRUE)
+allProgramLocations <- paste("IN ('",
+    paste(allProgramLocations,collapse = "','"),"')",sep = "")
+allProgramModes <- paste("IN ('",
+    paste(allProgramModes,collapse = "','"),"')",sep = "")
+
+#Total Program Capacity Table Data
+pt <- progCapacityTOT(progID, progRecentYear, progMaxTerm)
+#sort
+pt <- pt[order(pt$Year, pt$Loc, pt$Mode),]
+
+#Total College Capacity Table Data
+cb <- collegeCapacity(allProgramLocations, allProgramModes, progRecentYear, progMaxTerm)
+#sort
+cb <- cb[order(cb$Year, cb$Loc, cb$Mode),]
+
+#Merge data for department and program names 
+pt <- list(progDesc, pt) %>% reduce(merge)
+colnames(pt)[colnames(pt)=="x"] <- "Dept"
+colnames(cb)[colnames(cb)=="x"] <- "Dept"
+
+#Union Program and College data
+combProgCb <- bind_rows(cb, pt)
+
+#Change data frame into data table for dcast
+combProgCb <- data.table(combProgCb)
+
+#Use dcast to widen data
+combProgCbFTESFTEF <- dcast(combProgCb, Dept  + Loc + Mode ~ Year, value.var = c("FTES", "FTEF", "Effcy"))
+
+#Print a table with the data
+knitr::kable(combProgCbFTESFTEF, padding = 0)
+```
+
+### Program Success
+Grade distribution, number of degrees and certificates awarded by type, ethnicity, DSPS, Foster Youth, Veterans, and Economically Disadvantaged (Part C)
+
+#### Grade Distribution
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#Program Total percent Grade Distribution
+pt <- progPercentGDTot(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each grade and year
+pt <- group_by(pt, ACADEMIC_YEAR, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked GRADE bar chart
+ggplot(pt, aes(fill = GRADE, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+# facet_wrap(~DEPARTMENT) +
+  ggtitle(paste(progDesc, "Grade Distribution % by Year", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Grade", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE))
+```
+
+#### Department Grade Distribution
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis', fig.width = 6, fig.height = 6}
+
+#Program grade distribution percent by department 
+pt <- progPercentGrade(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of grade dsitribution by department and year
+pt <- group_by(pt, ACADEMIC_YEAR, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked Grade Distribution bar chart
+ggplot(pt, aes(fill = GRADE, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~DEPARTMENT) +
+  ggtitle(paste(progDesc, "Grade Distribution % by Department", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Grade", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 6), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 6)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE))
+```
+
+### Grade Distribution by Student Demographics
+#### Grade Distribution by Student Gender
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#Program Total percent Grade Distribution by Gender
+pt <- progPercentGenderGDTot(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each grade and year
+pt <- group_by(pt, ACADEMIC_YEAR, GENDER, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked GRADE bar chart
+ggplot(pt, aes(fill = GRADE, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~GENDER) +
+  ggtitle(paste(progDesc, "Grade Distribution % by Gender", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Grade", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE))
+```
+
+#### Grade Distribution by Student Ethnicity
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis', fig.width = 6, fig.height = 6}
+
+#Program Total percent Grade Distribution by Ethnicity
+pt <- progPercentEthnicityGDTot(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each grade and year
+pt <- group_by(pt, ACADEMIC_YEAR, ETI_DESC, PROGRAM) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked GRADE bar chart
+ggplot(pt, aes(fill = GRADE, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~ETI_DESC) +
+  theme(strip.text = element_text(size = 8)) +
+  ggtitle(paste(progDesc, "Grade Distribution % by Ethnicity", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Grade", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE))
+```
+
+#### Special Population Grade Distribution
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis', fig.width = 6, fig.height = 6}
+
+#Program Total percent Grade Distribution by SPECIAL POPULATION
+pt <- progSpecPopsGDTot(progID, progMinTerm, progMaxTerm)
+li <- pt
+dsps <- pt
+VET <-pt
+fy <-pt
+
+#GET LOW INCOME ONLY
+li$STU_DISABILITY_FLAG = NULL
+li$VETERAN_FLAG = NULL
+li$STU_FOSTER_YOUTH_FLAG = NULL
+li <- filter(li, LOW_INCOME != "N")
+
+#rename columns and change Y value to "Low Income"
+colnames(li)[colnames(li)=="LOW_INCOME"] <- "Population"
+li$Population[li$Population == "Y"] <- "Low Income"
+
+#GET DSPS ONLY
+dsps$LOW_INCOME = NULL
+dsps$VETERAN_FLAG = NULL
+dsps$STU_FOSTER_YOUTH_FLAG = NULL
+dsps <- filter(dsps, STU_DISABILITY_FLAG != "N")
+
+#rename columns and change Y value to "Disability"
+colnames(dsps)[colnames(dsps)=="STU_DISABILITY_FLAG"] <- "Population"
+dsps$Population[dsps$Population == "Y"] <- "Disability"
+
+#GET VETS ONLY
+VET$LOW_INCOME = NULL
+VET$STU_DISABILITY_FLAG = NULL
+VET$STU_FOSTER_YOUTH_FLAG = NULL
+VET <- filter(VET, VETERAN_FLAG != "N")
+
+#rename columns and change Y value to "Vet"
+colnames(VET)[colnames(VET)=="VETERAN_FLAG"] <- "Population"
+VET$Population[VET$Population == "Y"] <- "Veteran"
+
+#GET Foster Youth ONLY
+fy$LOW_INCOME = NULL
+fy$STU_DISABILITY_FLAG = NULL
+fy$VETERAN_FLAG = NULL
+fy <- filter(fy, STU_FOSTER_YOUTH_FLAG != "N")
+
+#rename columns and change Y value to "Vet"
+colnames(fy)[colnames(fy)=="STU_FOSTER_YOUTH_FLAG"] <- "Population"
+fy$Population[fy$Population == "Y"] <- "Foster Youth"
+
+#GET Comp Group ONLY
+compGroup <- progAntiSpecPopsGDTot(progID, progMinTerm, progMaxTerm)
+compGroup$LOW_INCOME = NULL
+compGroup$STU_DISABILITY_FLAG = NULL
+compGroup$VETERAN_FLAG = NULL
+compGroup$STU_FOSTER_YOUTH_FLAG = NULL
+compGroup[, "Population"] <- "None"
+
+#Merge groups for chart
+combProgCbPt <- rbind(li, dsps, VET, fy, compGroup)
+
+#Get the total number of Grades for each grouping
+combProgCbPt <- aggregate(combProgCbPt$HEADCOUNT, by = list(ACADEMIC_YEAR = combProgCbPt$ACADEMIC_YEAR, PROGRAM = combProgCbPt$PROGRAM, Population = combProgCbPt$Population, GRADE = combProgCbPt$GRADE), FUN = sum)
+colnames(combProgCbPt)[colnames(combProgCbPt)=="x"] <- "Outcomes"
+
+#Get the percentage of each grade outcome by group
+combProgCbPt <- group_by(combProgCbPt, PROGRAM, ACADEMIC_YEAR, Population) %>% mutate(percentOutcomes = Outcomes/sum(Outcomes))
+
+#Plot the 100% stacked GRADE bar chart
+ggplot(combProgCbPt, aes(fill = GRADE, y = percentOutcomes, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~Population) +
+  theme(strip.text = element_text(size = 8)) +
+  ggtitle(paste(progDesc, "Grade Distribution % by Special Population", sep = "\n")) +
+  aes(label = ifelse(percentOutcomes >= .04, paste0(sprintf("%.0f", percentOutcomes*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Grade", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE))
+```
+
+###### page break
+### Program Disproportionate Impact - Success Rates
+This data indicates if strong evidence of disproportionate impact in success rates (the proportion of students earning a grade of C or P or better) existed in the last academic year.  A statistical test evaluates "between group" differences in success proportion and provides a p-value.  The closer the p-value is to zero the more likely it is that disproportionate impact exists between those indicated groups.  A p-value of less than 0.10 justifies discussion and a result less than 0.05 indicates likely disproportionate impact. This data describes whether or not disproportionate impact is likely, it does not indicate the size of the impact.  Size of the impact can be evaluated by examining the success rate and number of successes in the table below.
+
+#### Disproportionate Impact by Race
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program Total percent Success by Ethnicity
+pt <- progPercentEthnicityDITot(progID, progRecentYear, progMaxTerm)
+
+pt <- mutate(pt, SUCCESS_RATE = percent(pt$SUCCESS/pt$TOTAL))
+
+pt$ACADEMIC_YEAR = NULL
+pt$STU_ETHNICITY_IPEDS = NULL
+
+#Print a table with the data
+knitr::kable(pt)
+```
+
+#### P-values of Difference Between Groups - Student Success
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#Program Total percent Grade Distribution by Ethnicity
+pt <- progPercentEthnicityDITot(progID, progRecentYear, progMaxTerm)
+
+# these are the proportions
+#ptt <- data.frame(pt$SUCCESS, pt$TOTAL)
+#prop.test(ptt$pt.SUCCESS, ptt$pt.TOTAL) 
+
+#Do a pairwise test of confidence intervals
+ci <- pairwise.prop.test(pt$SUCCESS, pt$TOTAL)
+
+#put the p values into a data frame with lables
+diresult <- round(ci$p.value, digits = 2) %>% data.frame()
+colnames(diresult) <- pt$ETI_DES[1:7]
+rownames(diresult) <- pt$ETI_DESC[2:8]
+
+#Print a table with the data
+knitr::kable(diresult)
+```
+
+#### Disproportionate Impact by Special Population Status
+This table identifies the likelyhood of disproportionate impact related to special population status with a p-value.  The closer the p-value is to zero the more likely it is that disproportionate impact exists between the special population and those who do not belong to the population.
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#Program Total percent Grade Distribution by Special Population Group
+pt <- progPercentGroupDITot(progID, progRecentYear, progMaxTerm)
+
+#Program Total NOT special populations - part of comparison
+compGroup <- progAntiSpecPopsDITot(progID, progRecentYear, progMaxTerm)
+
+#Merge with special populations
+pt <- rbind(pt, compGroup)
+
+#Low Income - aggregate all low income and then all non low income
+li <- pt
+li$STU_DISABILITY_FLAG = NULL
+li$VETERAN_FLAG = NULL
+li$STU_FOSTER_YOUTH_FLAG = NULL
+li <- aggregate(list(SUCCESS = li$SUCCESS, TOTAL = li$TOTAL), by = list(ACADEMIC_YEAR = li$ACADEMIC_YEAR, LOW_INCOME = li$LOW_INCOME), FUN = sum)
+
+#change names of columns and values
+li$LOW_INCOME[li$LOW_INCOME == "Y"] <- "Low Income"
+li$LOW_INCOME[li$LOW_INCOME == "N"] <- "Not Low Income"
+colnames(li)[colnames(li)=="LOW_INCOME"] <- "Population Group"
+
+#Disability - aggregate all disability
+dsps <- pt
+dsps$LOW_INCOME = NULL
+dsps$VETERAN_FLAG = NULL
+dsps$STU_FOSTER_YOUTH_FLAG = NULL
+dsps <- aggregate(list(SUCCESS = dsps$SUCCESS, TOTAL = dsps$TOTAL), by = list(ACADEMIC_YEAR = dsps$ACADEMIC_YEAR, STU_DISABILITY_FLAG = dsps$STU_DISABILITY_FLAG), FUN = sum)
+
+#change names of columns and values
+dsps$STU_DISABILITY_FLAG[dsps$STU_DISABILITY_FLAG == "Y"] <- "DSPS"
+dsps$STU_DISABILITY_FLAG[dsps$STU_DISABILITY_FLAG == "N"] <- "Not DSPS"
+colnames(dsps)[colnames(dsps)=="STU_DISABILITY_FLAG"] <- "Population Group"
+
+#Veterans - aggregate all veterans
+vet <- pt
+vet$LOW_INCOME = NULL
+vet$STU_DISABILITY_FLAG = NULL
+vet$STU_FOSTER_YOUTH_FLAG = NULL
+vet <- aggregate(list(SUCCESS = vet$SUCCESS, TOTAL = vet$TOTAL), by = list(ACADEMIC_YEAR = vet$ACADEMIC_YEAR, VETERAN_FLAG = vet$VETERAN_FLAG), FUN = sum)
+
+#change names of columns and values
+vet$VETERAN_FLAG[vet$VETERAN_FLAG == "Y"] <- "Veteran"
+vet$VETERAN_FLAG[vet$VETERAN_FLAG == "N"] <- "Not a Veteran"
+colnames(vet)[colnames(vet)=="VETERAN_FLAG"] <- "Population Group"
+
+#FOSTER YOUTH - aggregate all foster youth
+fy <- pt
+fy$LOW_INCOME = NULL
+fy$STU_DISABILITY_FLAG = NULL
+fy$VETERAN_FLAG = NULL
+fy <- aggregate(list(SUCCESS = fy$SUCCESS, TOTAL = fy$TOTAL), by = list(ACADEMIC_YEAR = fy$ACADEMIC_YEAR, STU_FOSTER_YOUTH_FLAG = fy$STU_FOSTER_YOUTH_FLAG), FUN = sum)
+
+#change names of columns and values
+fy$STU_FOSTER_YOUTH_FLAG[fy$STU_FOSTER_YOUTH_FLAG == "Y"] <- "Foster Youth"
+fy$STU_FOSTER_YOUTH_FLAG[fy$STU_FOSTER_YOUTH_FLAG == "N"] <- "Not a Foster Youth"
+colnames(fy)[colnames(fy)=="STU_FOSTER_YOUTH_FLAG"] <- "Population Group"
+
+#Merge for printing in one table
+di <- rbind(li, dsps, vet, fy)
+
+di <- mutate(di, SUCCESS_RATE = percent(di$SUCCESS/di$TOTAL))
+
+di$ACADEMIC_YEAR = NULL
+
+#Print a table with the data
+knitr::kable(di)
+```
+
+#### P-values of Difference Between Special Population Groups - Student Success
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+
+#Program Total percent Grade Distribution by Special Population Group
+pt <- progPercentGroupDITot(progID, progRecentYear, progMaxTerm)
+
+#Program Total NOT special populations - part of comparison
+compGroup <- progAntiSpecPopsDITot(progID, progRecentYear, progMaxTerm)
+
+#Merge with special populations
+pt <- rbind(pt, compGroup)
+
+#Low Income - aggregate all low income and then all non low income
+li <- pt
+li$STU_DISABILITY_FLAG = NULL
+li$VETERAN_FLAG = NULL
+li$STU_FOSTER_YOUTH_FLAG = NULL
+
+li <- aggregate(list(SUCCESS = li$SUCCESS, TOTAL = li$TOTAL), by = list(ACADEMIC_YEAR = li$ACADEMIC_YEAR, LOW_INCOME = li$LOW_INCOME), FUN = sum)
+
+#Do a pairwise test of confidence intervals
+ci <- pairwise.prop.test(li$SUCCESS, li$TOTAL)
+
+#put the p values into a data frame with lables
+li <- round(ci$p.value, digits = 2) %>% data.frame()
+colnames(li) <- "Not in Group"
+rownames(li) <- "Low Income"
+
+#Disability - aggregate all disability
+dsps <- pt
+dsps$LOW_INCOME = NULL
+dsps$VETERAN_FLAG = NULL
+dsps$STU_FOSTER_YOUTH_FLAG = NULL
+
+dsps <- aggregate(list(SUCCESS = dsps$SUCCESS, TOTAL = dsps$TOTAL), by = list(ACADEMIC_YEAR = dsps$ACADEMIC_YEAR, STU_DISABILITY_FLAG = dsps$STU_DISABILITY_FLAG), FUN = sum)
+
+#Do a pairwise test of confidence intervals
+ci <- pairwise.prop.test(dsps$SUCCESS, dsps$TOTAL)
+
+#put the p values into a data frame with lables
+dsps <- round(ci$p.value, digits = 2) %>% data.frame()
+colnames(dsps) <- "Not in Group"
+rownames(dsps) <- "Disability"
+
+#Veterans - aggregate all veterans
+vet <- pt
+vet$LOW_INCOME = NULL
+vet$STU_DISABILITY_FLAG = NULL
+vet$STU_FOSTER_YOUTH_FLAG = NULL
+
+vet <- aggregate(list(SUCCESS = vet$SUCCESS, TOTAL = vet$TOTAL), by = list(ACADEMIC_YEAR = vet$ACADEMIC_YEAR, VETERAN_FLAG = vet$VETERAN_FLAG), FUN = sum)
+
+#Do a pairwise test of confidence intervals
+ci <- pairwise.prop.test(vet$SUCCESS, vet$TOTAL)
+
+#put the p values into a data frame with lables
+vet <- round(ci$p.value, digits = 2) %>% data.frame()
+colnames(vet) <- "Not in Group"
+rownames(vet) <- "Veteran"
+
+#FOSTER YOUTH - aggregate all foster youth
+fy <- pt
+fy$LOW_INCOME = NULL
+fy$STU_DISABILITY_FLAG = NULL
+fy$VETERAN_FLAG = NULL
+
+fy <- aggregate(list(SUCCESS = fy$SUCCESS, TOTAL = fy$TOTAL), by = list(ACADEMIC_YEAR = fy$ACADEMIC_YEAR, STU_FOSTER_YOUTH_FLAG = fy$STU_FOSTER_YOUTH_FLAG), FUN = sum)
+
+#Do a pairwise test of confidence intervals
+ci <- pairwise.prop.test(fy$SUCCESS, fy$TOTAL)
+
+#put the p values into a data frame with lables
+fy <- round(ci$p.value, digits = 2) %>% data.frame()
+colnames(fy) <- "Not in Group"
+rownames(fy) <- "Foster Youth"
+
+#Merge for printing in one table
+di <- rbind(li, dsps, vet, fy)
+
+#Print a table with the data
+knitr::kable(di)
+```
+
+###### page break
+### Program Degrees and Certificates Awarded
+The number of awards students earn in the program.  Are awards moving the same direction as student headcount?
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program Degrees and Certs plot
+ab <- degreeChits(progID, progMinTerm, progMaxTerm)
+#need to get program total
+pt <- aggregate(ab$AWARDS, by = list(ACADEMIC_YEAR = ab$ACADEMIC_YEAR, PROGRAM = ab$PROGRAM), FUN = sum)
+
+#add columns so we can merge data
+pt <- "Total" %>% mutate(pt, .)
+#pt <- mutate(pt, pt$PROGRAM)
+pt$ACP_DEG_CERT_TYPE <- "Total"
+pt$ACP_TITLE <- NA
+
+#rename the columns
+colnames(pt)[colnames(pt)=="x"] <- "AWARDS"
+colnames(pt)[colnames(pt)=="."] <- "DEPARTMENT"
+
+#Plot the time series award chart
+ggplot(pt, aes(y = AWARDS, x = ACADEMIC_YEAR, fill = DEPARTMENT)) + 
+  geom_bar(stat="identity", position = "dodge") +
+  facet_wrap(~ACP_DEG_CERT_TYPE) +
+  geom_text(aes(label = AWARDS), color = "black", size = 3) +
+  ggtitle(paste(progDesc, "Awards by Academic Year", sep = "\n")) +
+  labs(fill ="Department", x = "Academic Year", y = "Enrollment") +
+  scale_fill_brewer(palette = "Spectral") +
+  theme(legend.position = "bottom") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.5, "cm"), 
+  legend.title = element_blank()) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill = guide_legend(nrow = 1,byrow = TRUE))
+
+``` 
+
+#### Department Awards by Type
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program Degrees and Certs plot
+ab <- degreeChits(progID, progMinTerm, progMaxTerm)
+
+#Need to aggregate by Type
+ab <- aggregate(ab$AWARDS, by = list(ACADEMIC_YEAR = ab$ACADEMIC_YEAR, PROGRAM = ab$PROGRAM, DEPARTMENT = ab$DEPARTMENT, ACP_DEG_CERT_TYPE = ab$ACP_DEG_CERT_TYPE), FUN = sum)
+colnames(ab)[colnames(ab)=="x"] <- "AWARDS"
+
+#Plot the time series award chart
+ggplot(ab, aes(y = AWARDS, x = ACADEMIC_YEAR, fill = DEPARTMENT)) + 
+  geom_bar(stat="identity", position = "dodge") +
+  facet_wrap(~ACP_DEG_CERT_TYPE) +
+  geom_text(aes(label = AWARDS), color = "black", size = 3) +
+  ggtitle(paste(progDesc, "Awards by Academic Year", sep = "\n")) +
+  labs(fill ="Department", x = "Academic Year", y = "Enrollment") +
+  scale_fill_brewer(palette = "Spectral") +
+  theme(legend.position = "bottom") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 7), legend.key.size = unit(.5, "cm"), 
+  legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill = guide_legend(nrow = 3,byrow = TRUE))
+
+``` 
+
+###### page break
+### Program Faculty Demographics 
+Department/program faculty FTE, full-time/associate faculty ratio, and faculty ethnicity. 
+
+#### Faculty by Contract and Load
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College distinct Headcount plot
+cb <- percentFacLoadCol(progRecentYear, progMaxTerm)
+
+#Program Total distinct Headcount
+pt <- progPercentFacLoadTot(progID, progRecentYear, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(cb, pt)
+
+#Get the percentage of headcount for each contract type
+combProgCbPt <- group_by(combProgCbPt, ACADEMIC_YEAR, PROGRAM) %>% mutate("HC %" = percent(FACULTY_HEADCOUNT/sum(FACULTY_HEADCOUNT)))
+
+#Get the percentage of load for each contract type
+combProgCbPt <- group_by(combProgCbPt, ACADEMIC_YEAR, PROGRAM) %>% mutate("Load %" = percent(FACULTY_LOAD/sum(FACULTY_LOAD)))
+
+# Change column Names and order
+colnames(combProgCbPt)[colnames(combProgCbPt)=="ACADEMIC_YEAR"] <- "Year"
+colnames(combProgCbPt)[colnames(combProgCbPt)=="PROGRAM"] <- "Program"
+colnames(combProgCbPt)[colnames(combProgCbPt)=="FACULTY_TYPE"] <- "Contract"
+colnames(combProgCbPt)[colnames(combProgCbPt)=="FACULTY_LOAD"] <- "Load"
+colnames(combProgCbPt)[colnames(combProgCbPt)=="FACULTY_HEADCOUNT"] <- "Headcount"
+combProgCbPt <- combProgCbPt[,c(1,2,3,4,6,5,7)]
+
+knitr::kable(combProgCbPt)
+```  
+
+#### Faculty Gender by Contract Type
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College distinct Headcount plot
+cb <- percentFacGenderCol(progRecentYear, progMaxTerm)
+
+#Program Total distinct Headcount
+pt <- progPercentFacGenderTot(progID, progRecentYear, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(cb, pt)
+
+#Get the percentage of headcount for each gender and term
+combProgCbPt <- group_by(combProgCbPt, ACADEMIC_YEAR, PROGRAM, FACULTY_TYPE) %>% mutate(percentHEADCOUNT = FACULTY_HEADCOUNT/sum(FACULTY_HEADCOUNT))
+
+#Plot the 100% stacked Gender bar chart
+ggplot(combProgCbPt, aes(fill = FAC_GENDER, y = percentHEADCOUNT, x = FACULTY_TYPE)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~PROGRAM) +
+  ggtitle(paste(progDesc, "Unique Faculty Headcount % by Gender", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Gender", x = "Faculty Contract", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=1,byrow=TRUE))
+```  
+
+#### Faculty Ethnicity by Contract Type
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College distinct Headcount plot
+cb <- percentFacEthnicityCol(progRecentYear, progMaxTerm)
+
+#Program Total distinct Headcount
+pt <- progPercentFacEthnicityTot(progID, progRecentYear, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(cb, pt)
+
+#Get the percentage of headcount for each ethnicity and term
+combProgCbPt <- group_by(combProgCbPt, ACADEMIC_YEAR, PROGRAM, FACULTY_TYPE) %>% mutate(percentHEADCOUNT = FACULTY_HEADCOUNT/sum(FACULTY_HEADCOUNT))
+
+#Plot the 100% stacked ETHNICITY bar chart
+ggplot(combProgCbPt, aes(fill = ETI_DESC, y = percentHEADCOUNT, x = FACULTY_TYPE)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~PROGRAM) +
+  ggtitle(paste(progDesc, "Unique Faculty Headcount % by Ethnicity", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Ethnicity", x = "Faculty Contract", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 6), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 6)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE))
+```  
+
+#### Faculty Age by Contract Type
+Faculty load and headcount for the period with thier age as of the run date.
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#College distinct Headcount plot
+cb <- percentFacAgeCol(progRecentYear, progMaxTerm)
+
+#Program Total distinct Headcount
+pt <- progPercentFacAgeTot(progID, progRecentYear, progMaxTerm)
+
+#Merge program and College data for chart
+combProgCbPt <- rbind(cb, pt)
+
+#Get the percentage of headcount for each age group
+combProgCbPt <- group_by(combProgCbPt, ACADEMIC_YEAR, PROGRAM, FACULTY_TYPE) %>% mutate(percentHEADCOUNT = FACULTY_HEADCOUNT/sum(FACULTY_HEADCOUNT))
+
+#Plot the 100% stacked Gender bar chart
+ggplot(combProgCbPt, aes(fill = FAC_AGE, y = percentHEADCOUNT, x = FACULTY_TYPE)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~PROGRAM) +
+  ggtitle(paste(progDesc, "Unique Faculty Headcount % by Age", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .04, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Age", x = "Faculty Contract", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 6), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 6)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=2,byrow=TRUE))
+```  
+
+###### page break
+## Program Revenue and Expenditures
+Using the SURE Report Data (Part H), compare revenue margin to revenue expense. Are there unique aspects of the program that contribute to revenue or to costs? Are there ways to reduce departmental costs or to improve efficiency?
+
+###### page break
+# INSTRUCTION
+## Teaching Excellence
+Focus on the commitment to inclusive, informed, and intentional dialogue for each element.
+
+### Learning beyond the classroom
+How do instructors enhance classroom activities with outside learning experiences for students?
+
+### Collaboration
+Explain the level of collaboration and dialogue between your department, other departments, and student services.
+
+### Partnerships
+Describe the expansion of institutional partnerships with other schools, businesses, or organizations as appropriate.
+
+### Climate
+Describe efforts to promote general morale in the department (e.g. involvement of associate faculty and staff in activities; respectful treatment of diverse faculty, staff, and students).
+
+### Staffing
+Discuss current status of staffing (classified/certificated and faculty) and anticipated needs.
+
+### Standards and Consistency Procedures
+What are the processes and procedures that the department uses to maintain academic standards and consistency, particularly in regard to multiple sections of introductory classes? Do course grade distribution reports for these courses validate the effectiveness of the processes and procedures?
+
+### Faculty Currency
+How do faculty stay current in their respective disciplines and with instructional methodologies? Provide examples of professional currency.
+
+## Program Success and Improvement
+### Curriculum Review
+List major changes to degrees, certificates, and courses from previous Curriculum Review work. What curriculum changes, both short-term (within the next two to five years) and long-term (more than five years), are recommended (if applicable). Describe any external articulation of courses in the program with local high schools or other colleges. Describe how advisory committees, representatives from other educational institutions, or statewide/national initiatives have influenced your department’s curriculum development. As warranted, include degree/certificate catalog pages, official course outlines, or other curriculum documentation as “Appendix IV.”
+
+### High School Partnerships
+List articulations with high schools to include career pathways, 2+2 programs, and dual enrollment programs.
+
+### Senior Institution Partnerships
+List articulations of major courses with CSU, Chico and/or other colleges to which students in this program are likely to transfer.
+
+### CTE Program Review
+Include 2 Year Program Review (CTE Programs) documentation completed since the last six-year Program Review as “Appendix V.” Provide summary comments or additional information, as appropriate.
+
+### Course Availability
+Discuss the process and criteria for scheduling classes, and obstacles to a student-centered schedule. Describe the synchronization of times/days of departmental offerings with those of other departments. Determine the adequacy of course offerings in the college’s outlying service areas.
+ 
+### Student Satisfaction Assessment
+What is your method of assessing student satisfaction with the program, and what are the results of this assessment? How do you incorporate those result into program improvement? (Possible methods include surveys, rates of persistence, retention rates, SLO data, among others.)
+
+### Program Demand
+How well does each instructional program serve present and anticipated student demand? Should the program be expanded? Decreased?
+
+###### page break
+# FACILITIES, EQUIPMENT AND TECHNOLOGY
+## Facilitites and Equipment
+### Facility Condition and Availability
+Describe the adequacy of departmental facilities with regard to room use, office availability, lab support, and location of classes.
+
+### Saftey
+Identify safety issues and hazardous conditions that have not been addressed or remedied by the college.
+
+### Future Facility Needs
+Discuss anticipated program growth or decline in relation to facility and equipment use and need.
+
+## Technology
+## Technology Condition and Availability
+Discuss the use of technology in the delivery of instruction, in or out of the classroom. Is the technology adequate to support the program?
+
+## Future Technology Support Needs
+Delineate proposed future curriculum development that will require additional technology. What will be the level of technology support required for these changes?
+
+###### page break
+# FUTURE PLANS
+Identify major departmental goals for the next six years and describe strategies for addressing the goals, including timeline, budgetary requirements, and persons responsible.
+
+###### page break
+# CURRICULUM REVIEW
+Curriculum Review must be completed prior to the completion of the Program Review Self-Study Framework.
+
+## Purpose
+
+___  A Curriculum Review component has been integrated into the program review process to ensure compliance with state-mandated Curriculum Standards as well as District requirements.
+
+___  Curriculum Review requires in depth reviews of courses and how those courses fit into and represent the program of which they are a part. Currency of texts, materials, and topics, among other things, should be considered.
+
+___  Curriculum Review facilitates 5 year transfer acceptance.
+
+## Process
+___  The Curriculum Committee will conduct training sessions for departments undergoing Program Review on how to prepare the materials needed for the curriculum section. This will also be a mandatory training for all deans, assistant deans, chairs and coordinators participating in a Program Review.
+
+___  The Program Review team will designate one of its members to coordinate the Curriculum Review activities. This member will work with the Curriculum Committee’s Technical Review subcommittee to ensure a review of course outlines and completion of all appropriate documentation.
+
+___  At the beginning of the curriculum review process, the Curriculum Committee will assist the department or program in identifying all active courses within the discipline along with their last date of review. All courses need to be reviewed, revised and updated, and submitted to the committee for their consideration during the review year. Attention should be paid to the currency of course texts and materials, topics, and objectives. The Curriculum Chair’s signature at the end of the program review documentation will verify that this course review has been completed.
+
+___  Programs or departments must also complete the Curriculum Review Verification of Completion contained in this section. The Technical Review subcommittee will review this once completed, and the Curriculum Chair’s signature will again verify completion of the documentation.
+
+___  The Program Review Validation Team will review the completed materials as part of the Program Review process.
+
+___  Additional modifications to curriculum may be warranted as Program Review continues. Such changes would be at the discretion of the Program Review Validation Team or the program faculty themselves.
+ 
+## Documentation
+In addition to reviewing course outlines, disciplines undergoing Program Review must complete the Curriculum Review documentation on the following pages. This documentation will focus on: 1) General Education criteria, 2) Prerequisite, Co-requisite and Recommended Prep regulations, 3) alternative delivery and modality standards, and 4) scheduling recency. The process for this part of the review will be as follows:
+
+A. General Education Criteria – Review of General Education placement will occur if there has been a substantive enough change in a particular course’s objectives or content to result in a significantly different outcome for the student.
+
+B. Prerequisite, Co-requisite and Recommended Preparation Regulation – A question and answer format will be integrated in the Curriculum Review to clarify the state-mandated regulations and the respective procedures developed by Butte College.
+
+C. Distance Learning Standards – Specific documentation will need to be completed within CurricUNET for all courses offered through the Distance Learning modality.
+
+D. Short Term Modality – “In order to maintain the academic integrity of all semester length classes, all semester length classes taught in a ‘short term’ modality (anything under 6 weeks) require departmental approval (or the approval of the individual discipline when it includes at least five full time faculty) and submission to the Curriculum Committee.” Consult the Joint Senate and Administrative Policy for short term courses (available on the Curriculum Committee website) for direction.
+
+E. Scheduling Recency – Since inclusion of courses in the College Catalog obligates the District to make reasonable efforts to offer such courses, any course that has not been offered within the past five years will be deleted unless reasonable justification for its continued active status is provided.
+
+### SLO Evaluation
+As “Appendix II,” provide a list of completed SLO Reports (from “deep-dives”) and SLO Brief Reflections Summaries (simply printout the table for the appropriate discipline(s) from the Assessment Schedules and Reports page of the SLO website).
+
+###### page break
+# Curriculum Review Verification of Completion
+
+For assistance with any portion of this documentation, visit the Curriculum Committee website or contact the Curriculum Chair.
+
+## Course Outlines
+
+Departments will need to review, revise and update their course outlines as part of the Curriculum Review with the exception of those course outlines which have been updated within the last three (3) years. All revised/updated curriculum must be submitted through CurricUNET as course modifications and approved by the Curriculum Committee. Attention should be paid to the currency of course materials, topics and objectives.
+
+A.	Have all course outlines incorporated critical thinking components (e.g., analysis, synthesis, etc.)?
+
+Yes: 	No: 	If no, explain.
+
+B.	Are all faculty and staff within the department aware of how to access official course outlines?
+
+Yes:     No:   If no, direct them to the Course Outlines link on at <http://www.butte.edu/curriculum>
+
+C.	Does the department receive copies of all course syllabi each semester?
+
+Yes: 	No: 	If no, explain.
+
+D.	Are the objectives (student learning outcomes) from the course outlines included in the respective syllabi?
+
+Yes: 	No: 	If no, explain.
+
+
+## General Education
+
+Have the objectives or content of any course offered through your department which can be used to meet General Education requirements (i.e., IGETC, CSU, or Associate) been modified to the extent that the outcome for the student is significantly different?
+
+Yes 		No 	 If yes, has the GE status of the courses been reviewed, including possible resubmission of documentation appropriate for the highest level G.E. pattern desired (IGETC, CSU, or Associate)? Contact Curriculum Chair for information.
+
+## Prerequisites, Co-requisites, Recommended Preparation
+
+Note: The District adheres to Title 5 regulations regarding the establishment and review of prerequisites, co-requisites, and recommended preparation. For relevant information, consult the Chancellor’s Office “Course and Program Approval Handbook” or Title 5, Section 55003, or contact the Curriculum Chair.
+
+A.	Have all courses offered through your department which have recommended preparation (e.g., Reading Level IV) as listed in the College Catalog undergone a content review?
+
+Yes 	No 	If no, explain.
+ 
+B.	Are the content review summaries available in the department office for perusal?
+
+Yes 	No 	If no, where can they be located?
+ 
+C.	Have all courses offered through your department which have prerequisites or co- requisites undergone an appropriate level of scrutiny to validate their use?
+
+Yes 	No 	If no, explain.
+
+D.	Have all prerequisites and co-requisites required for courses in your department been reviewed within the last six (6) years (as required by Title 5, section 55003)?
+
+Yes 	No 	If no, explain.
+ 
+E.	Has the program or department established a process for students to pursue when challenging prerequisites and co-requisites which are required by courses in your department, and are faculty aware of this process?
+
+ 
+Yes   No   If no, explain.
+ 
+## Distance Learning
+
+Has the documentation for all your distance learning courses been submitted and approved by the Curriculum Committee?
+
+Yes 		No 	 If no, complete the distance learning documentation within CurricUNET for each course not approved thus far which falls into this classification. New online courses must meet additional standards and be approved by the Distance Learning
+ 
+Committee before being scheduled. Visit the Distance Learning Committee website for further information.
+
+## Short Term Modality
+
+Have all courses which are available in short term modality been approved as such by departmental consensus and by the Curriculum Committee?
+
+ 
+Yes 	No 	If no, explain.
+ 
+
+## Recency
+
+Are there any courses that the department has not offered within the past 5 years?
+
+Yes No If yes, provide justification for them remaining active courses.
+
+## Learning Outcome Mappings
+Have Assessment Planning Schedules (“deep-dive” matrices) been updated to reflect changes to alignments between program learning outcomes (PLOs), course learning outcomes (SLOs), and GE learning outcomes (GELOs) resulting from Curriculum Review changes?
+
+ 
+Yes 	No 	If no, explain.
+ 
+
+Include matrices as “Appendix VI.”
+
+###### page break
+# APPROVAL
+
+***
+| Signature - Department Chair - Date: 
+
+
+***
+| Signature - SLO Coordinator - Date: 
+
+
+***
+| Signature - Department Chair - Date: 
+
+
+***
+| Signature - SLO Coordinator - Date: 
+
+
+***
+| Signature - Dean, Assistant Dean, Director - Date: 
+
+
+***
+| Signature - VP of Academic Services - Date:
+
+***
+
+###### page break
+
+
+
+

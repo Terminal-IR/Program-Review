@@ -1,0 +1,335 @@
+---
+output: 
+  word_document:
+    reference_docx: RPRODWordStylePR-AppendixData.docx
+    toc: False
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.width = 7, fig.height = 5.5, dpi = 600)
+
+#Libraries
+# library(knitr)
+# library(rmarkdown)
+# library(ggplot2)
+# library(RColorBrewer)
+# library(scales)
+# library(dplyr)
+# library(tidyr)
+# library(reshape2)
+# library(data.table)
+# library(magrittr)
+# library(purrr)
+# library(ggrepel)
+# library(treemapify)
+# library(circlize)
+# library(flextable)
+# library(officer)
+
+
+
+#Libraries
+library(knitr)
+library(rmarkdown)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(reshape2)
+library(magrittr)
+library(data.table)
+library(purrr)
+
+#Format libraries
+#library(kableExtra) #Tables pretty
+library(RColorBrewer) #Colors for charts
+library(scales) #Colors for charts
+library(ggrepel) #Make sure lables don't run over each other
+library(treemapify) #Make a tree map
+library(flextable)
+library(officer)
+
+#Color Palate
+coul = brewer.pal(11, "Spectral") 
+
+#Source files
+source("ProgramReviewAutomation_Qdemographics.R")
+
+```
+
+# APPPENDIX 1 - DETAIL DATA
+This appendix provides detailed program data.  Charts and tables in this section may be copied into the Data Analysis section of the Current Status section.
+
+#### Headcount
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program distinct Headcount plot
+ab <- progDistinctHC(progID, progMinTerm, progMaxTerm)
+
+#Plot the time series headcount chart
+ggplot(ab, aes(y = HEADCOUNT, x = ACADEMIC_YEAR, color = DEPARTMENT, label = HEADCOUNT)) + 
+  geom_line() +
+  geom_text_repel(color = "black", size = 3) +
+  #geom_text(aes(label = HEADCOUNT), color = "black", size = 3) +
+  ggtitle(paste(progDesc, "Unique Headcount by Academic Year", sep = "\n")) +
+  labs(color ="Department", x = "Academic Year", y = "Headcount") +
+  scale_color_brewer(palette = "Spectral") +
+  theme(legend.position = "bottom") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.5, "cm"), 
+  legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  guides(color = guide_legend(nrow = 3,byrow = TRUE))
+``` 
+
+#### Gender
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program percent gender plot
+ab <- progPercentGender(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each gender and term
+ab <- group_by(ab, ACADEMIC_YEAR, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked gender bar chart
+ggplot(ab, aes(fill = STU_GENDER, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~DEPARTMENT) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Gender", sep = "\n")) +
+  aes(label = paste0(sprintf("%.0f", percentHEADCOUNT*100),"%")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Gender", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.5, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```  
+
+#### Age
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program percent AGE plot
+ab <- progPercentAge(progID, progMinTerm, progMaxTerm)
+
+#need to group ages
+ab <- aggregate(ab$HEADCOUNT, by = list(ENR_TERM = ab$ENR_TERM, DEPARTMENT = ab$DEPARTMENT, AGE = ab$AGE), FUN = sum)
+
+#rename the frequency column
+colnames(ab)[colnames(ab)=="x"] <- "HEADCOUNT"
+
+#Get the percentage of headcount for each gender and term
+ab <- group_by(ab, ENR_TERM, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked AGE bar chart
+ggplot(ab, aes(fill = AGE, y = percentHEADCOUNT, x = ENR_TERM)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~DEPARTMENT) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Age", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .05, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Age", x = "Fall Term", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+#### Student Ethnicity
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program percent ETHNICITY plot
+ab <- progPercentEthnicity(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each gender and term
+ab <- group_by(ab, ACADEMIC_YEAR, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked ETHNICITY bar chart
+ggplot(ab, aes(fill = ETI_DESC, y = percentHEADCOUNT, x = ACADEMIC_YEAR)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~DEPARTMENT) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Ethnicity", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .05, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Ethnicity", x = "Academic Year", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8)) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  guides(fill=guide_legend(nrow=3,byrow=TRUE))
+```
+
+#### Student Income Status
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program percent Low Income plot
+ab <- progPercentLow(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each INCOME STATUS and TERM
+ab <- group_by(ab, ENR_TERM, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT))
+
+#Plot the 100% stacked Low Income bar chart
+ggplot(ab, aes(fill = LOW_INCOME, y = percentHEADCOUNT, x = ENR_TERM)) + 
+  geom_bar( stat="identity", position="fill", color="white", lwd = 0.1) +
+  facet_wrap(~DEPARTMENT) +
+  ggtitle(paste(progDesc, "Unique Headcount % by Income Status", sep = "\n")) +
+  aes(label = ifelse(percentHEADCOUNT >= .05, paste0(sprintf("%.0f", percentHEADCOUNT*100),"%"),"")) +  
+  geom_text(position=position_stack(vjust = 0.5), color = "black", size = 3) +
+  scale_fill_brewer(palette = "Spectral") +
+  scale_y_continuous(labels = scales::percent) +
+   labs(fill="Low Income", x = "Fall Term", y = "Percent") +
+  theme(plot.title = element_text(size = 10, face = "bold")) +
+  theme(legend.position = "bottom") +
+  theme(legend.text = element_text(size = 8), legend.key.size = unit(.4, "cm"), 
+        legend.title = element_text(size = 8)) +
+  theme(axis.title.y = element_text(size = 8), axis.title.x = element_text(size = 8))+
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+#### Special Populations
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Program percent DSPS table
+dsps <- progPercentDSPS(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each DSPS status and term
+dsps <- group_by(dsps, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as DSPS" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+dsps$HEADCOUNT = NULL
+dsps$percentHEADCOUNT = NULL
+dsps <- filter(dsps, STU_DISABILITY_FLAG != "N")
+dsps$STU_DISABILITY_FLAG = NULL
+
+#rename columns
+colnames(dsps)[colnames(dsps)=="DEPARTMENT"] <- "Department"
+
+#Program percent Foster Youth table
+foster <- progPercentFoster(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for foster youth status and term
+foster <- group_by(foster, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Foster Youth" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+foster$HEADCOUNT = NULL
+foster$percentHEADCOUNT = NULL
+foster <- filter(foster, STU_FOSTER_YOUTH_FLAG != "N")
+foster$STU_FOSTER_YOUTH_FLAG = NULL
+
+#rename columns
+colnames(foster)[colnames(foster)=="DEPARTMENT"] <- "Department"
+
+#Program percent VETERANS table
+vet <- progPercentVet(progID, progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount for each veteran status and term
+vet <- group_by(vet, DEPARTMENT) %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Veterans" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+vet$HEADCOUNT = NULL
+vet$percentHEADCOUNT = NULL
+vet <- filter(vet, VETERAN_FLAG != "N")
+vet$VETERAN_FLAG = NULL
+
+#rename columns
+colnames(vet)[colnames(vet)=="DEPARTMENT"] <- "Department"
+
+#Merge data for table
+progSpecPops <- list(dsps, foster, vet) %>% reduce(merge)
+
+
+#College percent DSPS table
+cbDSPS <- percentDSPSCol(progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount
+cbDSPS <- cbDSPS %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as DSPS" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+cbDSPS$HEADCOUNT = NULL
+cbDSPS$percentHEADCOUNT = NULL
+cbDSPS <- filter(cbDSPS, STU_DISABILITY_FLAG != "N")
+cbDSPS$STU_DISABILITY_FLAG = NULL
+
+#College percent Foster Youth table
+cbFost <- percentFosterCol(progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount
+cbFost <- cbFost %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Foster Youth" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+cbFost$HEADCOUNT = NULL
+cbFost$percentHEADCOUNT = NULL
+cbFost <- filter(cbFost, STU_FOSTER_YOUTH_FLAG != "N")
+cbFost$STU_FOSTER_YOUTH_FLAG = NULL
+
+#College percent Veteran table
+cbVet <- percentVetCol(progMinTerm, progMaxTerm)
+
+#Get the percentage of headcount
+cbVet <- cbVet %>% mutate(percentHEADCOUNT = HEADCOUNT/sum(HEADCOUNT)) %>% mutate("Identified as Veterans" = percent(percentHEADCOUNT))
+
+#Remove unesessary columns and rows
+cbVet$HEADCOUNT = NULL
+cbVet$percentHEADCOUNT = NULL
+cbVet <- filter(cbVet, VETERAN_FLAG != "N")
+cbVet$VETERAN_FLAG = NULL
+
+#Merge data for table
+cbSpecPops <- list("Butte College", cbDSPS, cbFost, cbVet) %>% reduce(merge)
+colnames(cbSpecPops)[colnames(cbSpecPops)=="x"] <- "Department"
+
+#Union Program and College data
+combProgCb <- rbind(progSpecPops, cbSpecPops)
+
+#Print a table with the data
+knitr::kable(combProgCb, caption = "% of Program Students in Special Populations")
+
+```
+
+###### Page Break
+#### Fill Rates by Course
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Three years of data to limit table size
+progShortMinTerm <- as.numeric(progMinTerm) +  20
+
+#Program Capactity Table Data - data frame
+ab <- progCapacity(progID, progShortMinTerm, progMaxTerm)
+#sort
+ab <- ab[order(ab$Dept, ab$Year, ab$Crse, ab$Loc, ab$Mode),]
+
+#Change data frame into data table for dcast
+ab <- data.table(ab)
+
+#Use dcast to widen data
+abSecEnrl <- dcast(ab, Dept  + Loc + Mode + Crse ~ Year, value.var = c("Sec", "Enrl", "FR"))
+abFTESFTEF <- dcast(ab, Dept  + Loc + Mode + Crse ~ Year, value.var = c("FTES", "FTEF", "Effcy"))
+
+#Print a table with the data
+knitr::kable(abSecEnrl, padding = 0, caption = "Number of Courses Offered; Enrollments, and Fill Rates by Mode")
+```
+
+###### Page Break
+#### Efficiency by Course
+```{r, echo = FALSE, warning = FALSE, message = FALSE, results = 'asis'}
+#Three years of data to limit table size
+progShortMinTerm <- as.numeric(progMinTerm) +  20
+
+#Program Capactity Table Data - data frame
+ab <- progCapacity(progID, progShortMinTerm, progMaxTerm)
+#sort
+ab <- ab[order(ab$Dept, ab$Year, ab$Crse, ab$Loc, ab$Mode),]
+
+#Change data frame into data table for dcast
+ab <- data.table(ab)
+
+#Use dcast to widen data
+abFTESFTEF <- dcast(ab, Dept  + Loc + Mode + Crse ~ Year, value.var = c("FTES", "FTEF", "Effcy"))
+
+#Print a table with the data
+knitr::kable(abFTESFTEF, padding = 0, caption = "Number of FTES; FTEF, and Efficiency by Mode")
+```
