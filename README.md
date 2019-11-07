@@ -39,7 +39,7 @@ The ProgramsFile.csv file is used to indicate which academic programs will have 
 The Rmd files create the academic program reviews.
 
 ## Debts of Gratitude
-As a UNR grad it pains me to say it, but I owe a huge debt to Shiloh Bradley at UNLV's Office of Decision Support.  Without her presentation at the 2019 AIR Forum - <i> Automating Custome Peer Reports Using IPEDS Data with SQL, R and LaTeX </i>, I never would have launched this project.
+As a UNR grad it pains me to say it, but I owe a huge debt to Shiloh Bradley at UNLV's Office of Decision Support.  Without her presentation at the 2019 AIR Forum - <i> Automating Custom Peer Reports Using IPEDS Data with SQL, R and LaTeX </i>, I never would have launched this project.
 Thanks to everyone involved in making the R libraries I used. 
 Love to my wife and kids and thanks for letting burn the midnight oil to develop this package.
 
