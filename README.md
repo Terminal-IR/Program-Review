@@ -43,9 +43,13 @@ At minimum, you will need to do the following to make these files work for you.
 <ol>
   <li>Alter DBConnection.R to connect to your database.
   <li>Alter ProgramReviewAutomation_Qdemographics.R so that the SQL code works with your data source.
-  <li>Alter   
-  <li>Alter ProgramReviewDoc.Rmd so the markdown reflects the verbage of your program review template.
-  <li>
+  <li>Change ProgramReviewDoc.Rmd and the ProgramReviewDocAppendix.Rmd so the markdown reflects the verbage of your program review template.  Make changes to lines 44 through 50 as necessary to reflect your institution's term codes.
+  <li>Change the programs in the ProgramsFile.csv to reflect your institutions academic programs.
+  <li>You will probably want to update RPRODWordStylePR-01.docx and RPRODWordStylePR-AppendixData.docx to reflect the style guide at your institution
+</ol>
+
+### How to make this work
+After you make the changes above, you will want to put all the files in a folder that you can find with R studio.  ProgramReviewAutomation_MailMerge.R is the file you will want to run to make everytyhing go.  As you alter the .Rmd files, you may want to run them independently with a test program (see line 45 of ProgramReviewDoc.Rmd).
 
 ## Debts of Gratitude
 As a UNR grad it pains me to say it, but I owe a huge debt to Shiloh Bradley at UNLV's Office of Decision Support.  Without her presentation at the 2019 AIR Forum - <i> Automating Custom Peer Reports Using IPEDS Data with SQL, R and LaTeX </i>, I never would have launched this project.
