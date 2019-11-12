@@ -32,11 +32,20 @@ You will need to alter this package to fit your institution’s needs. If you co
 Requried R libraries are listed at the top of the code
 
 ## The files
-The Business Comp Info Systems Word documents are sample output files.
-The Word style documents create the style for the output.
-The R files are used to connect to the database and run queries.
-The ProgramsFile.csv file is used to indicate which academic programs will have a program review output.
-The Rmd files create the academic program reviews.
+The Business Comp Info Systems Word documents are sample output files.</br>
+The Word style documents create the style for the output.</br>
+The R files are used to connect to the database and run queries.</br>
+The ProgramsFile.csv file is used to indicate which academic programs will have a program review output.</br>
+The Rmd files create the academic program reviews.</br>
+
+## What you will have to do
+At minimum, you will need to do the following to make these files work for you.
+<ol>
+  <li>Alter DBConnection.R to connect to your database.
+  <li>Alter ProgramReviewAutomation_Qdemographics.R so that the SQL code works with your data source.
+  <li>Alter   
+  <li>Alter ProgramReviewDoc.Rmd so the markdown reflects the verbage of your program review template.
+  <li>
 
 ## Debts of Gratitude
 As a UNR grad it pains me to say it, but I owe a huge debt to Shiloh Bradley at UNLV's Office of Decision Support.  Without her presentation at the 2019 AIR Forum - <i> Automating Custom Peer Reports Using IPEDS Data with SQL, R and LaTeX </i>, I never would have launched this project.
